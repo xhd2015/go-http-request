@@ -2,7 +2,10 @@ package http_request
 
 import (
 	"context"
+	"errors"
 )
+
+var ErrRedirect = errors.New("redirect")
 
 func (c *RequestBuilder) PostJSON(ctx context.Context, url string, data interface{}, res interface{}) error {
 	body, err := c.request(ctx, url, true, data, res != nil)

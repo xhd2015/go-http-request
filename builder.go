@@ -23,8 +23,9 @@ type RequestBuilder struct {
 	log     bool
 	logFile string
 
-	enableCompress bool
-	client         *http.Client
+	enableCompress  bool
+	disableRedirect bool
+	client          *http.Client
 }
 
 func New() *RequestBuilder {
@@ -50,12 +51,29 @@ func (c *RequestBuilder) WithProxy(proxyURL string) *RequestBuilder {
 		c.buildErr = err
 		return c
 	}
-	c.client = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+	proxyTransport := &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
+	if c.client == nil {
+		c.client = &http.Client{Transport: proxyTransport}
+	} else {
+		clone := *c.client
+		clone.Transport = proxyTransport
+		c.client = &clone
+	}
+	return c
+}
+
+func (c *RequestBuilder) WithClient(client *http.Client) *RequestBuilder {
+	c.client = client
 	return c
 }
 
 func (c *RequestBuilder) Compressed() *RequestBuilder {
 	c.enableCompress = true
+	return c
+}
+
+func (c *RequestBuilder) DisableRedirect() *RequestBuilder {
+	c.disableRedirect = true
 	return c
 }
 
@@ -173,13 +191,20 @@ func (c *RequestBuilder) request(ctx context.Context, url string, post bool, dat
 	if c.client != nil {
 		client = c.client
 	}
+	if c.disableRedirect {
+		cloneClient := *client
+		cloneClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return ErrRedirect
+		}
+		client = &cloneClient
+	}
 	httpResp, err := client.Do(httpReq)
 	if err != nil {
 		return nil, err
 	}
 	defer httpResp.Body.Close()
 
-	readData := needData || httpResp.StatusCode != 200
+	readData := needData
 	var body []byte
 
 	if readData {
