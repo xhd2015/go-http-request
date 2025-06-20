@@ -1,0 +1,16 @@
+.DS_Store
+.vscode
+.idea
+
+*.log
+*.bin
+*.a
+*.exe
+# the xgo binary
+
+
+/*.log
+cover*.out
+/tmp
+__debug_bin*
+**/.xgo/gen
