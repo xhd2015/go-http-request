@@ -167,11 +167,11 @@ func (c *RequestBuilder) request(ctx context.Context, url string, post bool, dat
 			}
 		}
 		if len(logDataBytes) > 0 {
-			args = append(args, "--data-binary", string(logDataBytes))
+			args = append(args, "--data-binary", quoteSh(string(logDataBytes)))
 		} else if len(logDataString) > 0 {
-			args = append(args, "--data-binary", logDataString)
+			args = append(args, "--data-binary", quoteSh(logDataString))
 		}
-		args = append(args, strconv.Quote(url))
+		args = append(args, quoteSh(url))
 
 		cmdLog := strings.Join(args, " ")
 		if c.logFile != "" {
@@ -219,6 +219,13 @@ func (c *RequestBuilder) request(ctx context.Context, url string, post bool, dat
 		return nil, fmt.Errorf("response err: %v %v %v", httpResp.StatusCode, httpResp.Status, string(body))
 	}
 	return body, nil
+}
+
+func quoteSh(s string) string {
+	if !strings.Contains(s, "'") {
+		return "'" + s + "'"
+	}
+	return strconv.Quote(s)
 }
 
 func gzipData(reader io.Reader) (compressedData []byte, err error) {
