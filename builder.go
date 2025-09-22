@@ -25,7 +25,11 @@ type RequestBuilder struct {
 
 	enableCompress  bool
 	disableRedirect bool
-	client          *http.Client
+
+	basicAuthUsername string
+	basicAuthPassword string
+
+	client *http.Client
 }
 
 func New() *RequestBuilder {
@@ -59,6 +63,14 @@ func (c *RequestBuilder) WithProxy(proxyURL string) *RequestBuilder {
 		clone.Transport = proxyTransport
 		c.client = &clone
 	}
+	return c
+}
+
+// WithBasicAuth set basic auth username and password, this is a convenient method for
+// setting the header "Authorization: Basic <base64(username:password)>"
+func (c *RequestBuilder) WithBasicAuth(username, password string) *RequestBuilder {
+	c.basicAuthUsername = username
+	c.basicAuthPassword = password
 	return c
 }
 
@@ -154,6 +166,9 @@ func (c *RequestBuilder) request(ctx context.Context, url string, post bool, dat
 		for _, value := range values {
 			httpReq.Header.Add(header, value)
 		}
+	}
+	if c.basicAuthUsername != "" && c.basicAuthPassword != "" {
+		httpReq.SetBasicAuth(c.basicAuthUsername, c.basicAuthPassword)
 	}
 	if jsonContent {
 		httpReq.Header.Set("Content-Type", "application/json")
